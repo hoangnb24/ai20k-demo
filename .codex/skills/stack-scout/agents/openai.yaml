@@ -1,0 +1,4 @@
+interface:
+  display_name: "Stack Scout"
+  short_description: "Research current patterns before coding"
+  default_prompt: "Use $stack-scout to bootstrap or reuse code-mode-stack-research and research the best current pattern for this feature."
