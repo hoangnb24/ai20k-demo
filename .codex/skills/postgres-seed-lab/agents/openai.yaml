@@ -1,0 +1,4 @@
+interface:
+  display_name: "Postgres Seed Lab"
+  short_description: "Generate and run transient Postgres data scripts"
+  default_prompt: "Use $postgres-seed-lab to turn my local Postgres data request into a transient script, execute it through code-mode when available, and return the result."

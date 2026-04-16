@@ -29,6 +29,8 @@
     "db:studio": "turbo -F @ai20k-demo/db db:studio",
     "db:generate": "turbo -F @ai20k-demo/db db:generate",
     "db:migrate": "turbo -F @ai20k-demo/db db:migrate",
+    "db:seed:demo": "turbo -F @ai20k-demo/db db:seed:demo",
+    "db:manipulate:demo": "turbo -F @ai20k-demo/db db:manipulate:demo",
     "db:start": "turbo -F @ai20k-demo/db db:start",
     "db:watch": "turbo -F @ai20k-demo/db db:watch",
     "db:stop": "turbo -F @ai20k-demo/db db:stop",

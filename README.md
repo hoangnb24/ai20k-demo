@@ -24,13 +24,34 @@ bun install
 
 This project uses PostgreSQL with Drizzle ORM.
 
-1. Make sure you have a PostgreSQL database set up.
-2. Update your `apps/web/.env` file with your PostgreSQL connection details.
+1. Start the bundled PostgreSQL container:
+
+```bash
+bun run db:start
+```
+
+2. Update your `apps/web/.env` file if you need a non-default connection. The checked-in local Docker setup uses:
+
+```bash
+DATABASE_URL=postgresql://postgres:password@localhost:5432/ai20k-demo
+```
 
 3. Apply the schema to your database:
 
 ```bash
 bun run db:push
+```
+
+4. Optional: seed a large local dataset for testing and code-mode experiments:
+
+```bash
+bun run db:seed:demo
+```
+
+5. Optional: run the bundled bulk-manipulation example:
+
+```bash
+bun run db:manipulate:demo
 ```
 
 Then, run the development server:
@@ -88,3 +109,18 @@ ai20k-demo/
 - `bun run db:generate`: Generate database client/types
 - `bun run db:migrate`: Run database migrations
 - `bun run db:studio`: Open database studio UI
+- `bun run db:seed:demo`: Seed the `demo_orders` table with a large local dataset
+- `bun run db:manipulate:demo`: Run a bulk update example against `demo_orders`
+- `bun run db:start`: Start the local PostgreSQL Docker container
+- `bun run db:stop`: Stop the local PostgreSQL Docker container
+- `bun run db:down`: Stop the container and remove the Docker Compose stack
+
+## Code-Mode Example
+
+The repo now includes a `demo_orders` table plus seed/manipulation scripts so code-mode can work against realistic local data instead of toy JSON.
+
+- Seed `10,000` rows with `bun run db:seed:demo`
+- Run `bun run db:manipulate:demo` to apply bulk state changes
+- Use the same local `DATABASE_URL` with a `database-server` MCP helper to inspect or reshape data ad hoc
+
+The full walkthrough lives in [galeries/code_mode_postgres.md](/Users/themrb/Documents/personal/ai20k/ai20k-demo/galeries/code_mode_postgres.md).
