@@ -1,0 +1,36 @@
+[mcp_servers]
+
+[mcp_servers.MCP_DOCKER]
+command = "docker"
+args = ["mcp", "gateway", "run"]
+
+[mcp_servers.gkg]
+url = "http://localhost:27495/mcp"
+
+
+[mcp_servers.morph-mcp]
+command = "npx"
+args = ["-y", "@morphllm/morphmcp"]
+
+# This is a paid services, it does help free usage for students. Enter your API KEY HERE
+[mcp_servers.morph-mcp.env]
+MORPH_API_KEY = "sk-"
+
+# These MCP SERVERs below can be added in MCP_DOCKER but stability is not that good, so I added a dedicated section here.
+[mcp_servers.exa]
+url = "https://mcp.exa.ai/mcp"
+
+[mcp_servers.deepwiki]
+url = "https://mcp.deepwiki.com/mcp"
+
+[tui]
+status_line = ["model-with-reasoning", "current-dir", "git-branch", "context-usage", "codex-version", "total-input-tokens"]
+
+[features]
+js_repl = true
+multi_agent = true
+prevent_idle_sleep = true
+
+[agents]
+max_threads = 6
+max_depth = 1
