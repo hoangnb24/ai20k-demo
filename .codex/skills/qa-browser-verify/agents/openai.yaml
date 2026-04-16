@@ -1,0 +1,4 @@
+interface:
+  display_name: "QA Browser Verify"
+  short_description: "Run browser-first QA with agent-browser"
+  default_prompt: "Use $qa-browser-verify to QA this local app with the agent-browser CLI, check the key routes and interactions, and report concrete pass/fail evidence."
