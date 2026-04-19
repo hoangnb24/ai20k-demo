@@ -4,12 +4,15 @@ import { Button } from "@ai20k-demo/ui/components/button";
 import { SignInButton, SignUpButton, UserButton, useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 
+import { BILLING_ROUTE } from "@/lib/billing";
+
 import { ModeToggle } from "./mode-toggle";
 
 export default function Header() {
   const { isLoaded, isSignedIn } = useAuth();
   const links = [
     { to: "/", label: "Home" },
+    { to: BILLING_ROUTE, label: "Billing" },
     { to: "/ai", label: "AI Chat" },
   ] as const;
   const showSignedOutControls = !isLoaded || !isSignedIn;
@@ -20,7 +23,11 @@ export default function Header() {
         <nav className="flex gap-4 text-lg">
           {links.map(({ to, label }) => {
             return (
-              <Link key={to} href={to}>
+              <Link
+                key={to}
+                href={to}
+                prefetch={to === "/ai" || to === BILLING_ROUTE ? false : undefined}
+              >
                 {label}
               </Link>
             );
