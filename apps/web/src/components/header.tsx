@@ -1,33 +1,53 @@
 "use client";
-import Link from "next/link";
-import { Show, SignInButton, UserButton } from "@clerk/nextjs";
-import { buttonVariants } from "@ai20k-demo/ui/components/button";
 
-import { ModeToggle } from "./mode-toggle";
+import { Button } from "@ai20k-demo/ui/components/button";
+import { SignInButton, SignUpButton, UserButton, useAuth } from "@clerk/nextjs";
+import Link from "next/link";
+
 import { BILLING_ROUTE } from "@/lib/billing";
 
+import { ModeToggle } from "./mode-toggle";
+
 export default function Header() {
+  const { isLoaded, isSignedIn } = useAuth();
+  const links = [
+    { to: "/", label: "Home" },
+    { to: BILLING_ROUTE, label: "Billing" },
+    { to: "/ai", label: "AI Chat" },
+  ] as const;
+  const showSignedOutControls = !isLoaded || !isSignedIn;
+
   return (
     <div>
       <div className="flex flex-row items-center justify-between px-2 py-1">
         <nav className="flex gap-4 text-lg">
-          <Link href="/">Home</Link>
-          <Link href={BILLING_ROUTE} prefetch={false}>
-            Billing
-          </Link>
-          <Link href="/ai" prefetch={false}>
-            AI Chat
-          </Link>
+          {links.map(({ to, label }) => {
+            return (
+              <Link
+                key={to}
+                href={to}
+                prefetch={to === "/ai" || to === BILLING_ROUTE ? false : undefined}
+              >
+                {label}
+              </Link>
+            );
+          })}
         </nav>
         <div className="flex items-center gap-2">
-          <Show when="signed-out">
+          {showSignedOutControls ? (
             <SignInButton mode="modal">
-              <button className={buttonVariants({ variant: "outline", size: "sm" })}>Sign in</button>
+              <Button variant="outline" size="sm">
+                Sign in
+              </Button>
             </SignInButton>
-          </Show>
-          <Show when="signed-in">
+          ) : (
             <UserButton />
-          </Show>
+          )}
+          {showSignedOutControls ? (
+            <SignUpButton mode="modal">
+              <Button size="sm">Sign up</Button>
+            </SignUpButton>
+          ) : null}
           <ModeToggle />
         </div>
       </div>

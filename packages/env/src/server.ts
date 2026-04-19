@@ -20,8 +20,10 @@ for (const envPath of envPaths) {
 
 export const env = createEnv({
   server: {
+    CLERK_SECRET_KEY: z.string().min(1).optional(),
     DATABASE_URL: z.string().min(1),
     CORS_ORIGIN: z.url(),
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1).optional(),
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   },
   runtimeEnv: process.env,
