@@ -115,6 +115,65 @@ ai20k-demo/
 - `bun run db:stop`: Stop the local PostgreSQL Docker container
 - `bun run db:down`: Stop the container and remove the Docker Compose stack
 
+## VPS Demo Stack
+
+The repo includes a production-oriented Docker Compose stack for a single VPS. It keeps the deployment path simple: GitHub Actions builds and pushes the `web` image to GHCR, then SSH runs Compose on the server.
+
+1. Copy the stack files to the VPS and create the production env file:
+
+```bash
+cp .env.prod.example .env.prod
+```
+
+2. Fill in `DOMAIN`, `ACME_EMAIL`, app secrets, database credentials, and Grafana admin credentials in `.env.prod`. The app expects the production database URL to point at the Compose service host:
+
+```bash
+DATABASE_URL=postgresql://ai20k_demo:change-me@postgres:5432/ai20k_demo
+```
+
+3. Start the stack:
+
+```bash
+docker compose --env-file .env.prod -f compose.prod.yml up -d
+```
+
+The public routes are:
+
+- `https://app.<DOMAIN>` -> Next.js app
+- `https://grafana.<DOMAIN>` -> Grafana with Prometheus and Loki datasources provisioned
+- `https://portainer.<DOMAIN>` -> Portainer UI
+
+The stack also runs Postgres, Traefik, Prometheus, Loki, Alloy, node-exporter, and cAdvisor. The app exposes `/api/internal/health` and `/api/internal/metrics` for container health checks and internal Prometheus scraping; Traefik does not route `/api/internal/*` publicly.
+
+To enable image update visibility without automatic restarts, run the optional DIUN profile:
+
+```bash
+docker compose --env-file .env.prod -f compose.prod.yml --profile updates up -d diun
+```
+
+### GitHub Actions Deploy
+
+The workflow at `.github/workflows/deploy-vps.yml` builds `ghcr.io/<owner>/<repo>/web` on pushes to `master` or `main`, then deploys the exact SHA-tagged image over SSH.
+
+Required repository secrets:
+
+- `VPS_HOST`
+- `VPS_USER`
+- `VPS_SSH_KEY`
+- `VPS_STACK_PATH`
+
+Optional repository secrets:
+
+- `VPS_PORT` defaults to `22`
+- `GHCR_USERNAME` and `GHCR_TOKEN` are needed only if the VPS must authenticate to pull the GHCR package
+
+The deploy command run on the VPS is:
+
+```bash
+WEB_IMAGE=ghcr.io/<owner>/<repo>/web:sha-<commit-sha> docker compose --env-file .env.prod -f compose.prod.yml pull web
+WEB_IMAGE=ghcr.io/<owner>/<repo>/web:sha-<commit-sha> docker compose --env-file .env.prod -f compose.prod.yml up -d --remove-orphans
+```
+
 ## Code-Mode Example
 
 The repo now includes a `demo_orders` table plus seed/manipulation scripts so code-mode can work against realistic local data instead of toy JSON.
