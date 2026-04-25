@@ -1,0 +1,28 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build output and caches
+.next
+**/.next
+.turbo
+**/.turbo
+dist
+build
+coverage
+
+# Local env and editor state
+.env
+.env.*
+!.env.prod.example
+.DS_Store
+.vscode
+.idea
+
+# Git and local agent state
+.git
+.codex
+galeries
+logs
+tmp
+temp
