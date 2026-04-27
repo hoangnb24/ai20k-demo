@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CI/CD, Cloud Deployment & Observability</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css" id="theme" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/github.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --black: #0d0d0d;
+      --dark: #1a1a1a;
+      --gray-900: #2d2d2d;
+      --gray-700: #525252;
+      --gray-500: #737373;
+      --gray-400: #a3a3a3;
+      --gray-200: #e5e5e5;
+      --gray-100: #f5f5f5;
+      --white: #fafafa;
+      --pure-white: #ffffff;
+      --accent: #10a37f;
+      --accent-light: #1dd1a1;
+      --accent-bg: rgba(16,163,127,0.08);
+      --red: #ef4444;
+      --amber: #f59e0b;
+      --blue: #3b82f6;
+    }
+
+    .reveal {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--dark);
+    }
+
+    .reveal .slides { text-align: left; }
+    .reveal .slides > section { padding: 30px 50px; box-sizing: border-box; }
+
+    /* Typography */
+    .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
+      font-family: 'Inter', sans-serif;
+      text-transform: none;
+      letter-spacing: -0.03em;
+      color: var(--black);
+      line-height: 1.1;
+    }
+    .reveal h1 { font-size: 2.6em; font-weight: 800; }
+    .reveal h2 { font-size: 1.8em; font-weight: 700; margin-bottom: 0.4em; }
+    .reveal h3 { font-size: 1.1em; font-weight: 500; color: var(--gray-500); }
+    .reveal p { font-size: 0.75em; color: var(--gray-700); line-height: 1.6; }
+    .reveal ul, .reveal ol { font-size: 0.72em; color: var(--gray-700); line-height: 1.7; }
+    .reveal li { margin-bottom: 0.3rem; }
+
+    /* Centered slides */
+    .reveal .center-slide { text-align: center; }
+    .reveal .center-slide h1,
+    .reveal .center-slide h2,
+    .reveal .center-slide h3,
+    .reveal .center-slide p { text-align: center; }
+
+    /* Section label */
+    .section-label {
+      display: inline-block;
+      font-size: 0.55em;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--accent);
+      margin-bottom: 1rem;
+    }
+
+    /* Subtle divider line */
+    .divider {
+      width: 48px; height: 3px;
+      background: var(--accent);
+      border: none;
+      margin: 1.5rem 0;
+      border-radius: 2px;
+    }
+
+    /* Dark slide */
+    .dark-slide { background: var(--black) !important; }
+    .dark-slide h1, .dark-slide h2, .dark-slide h3 { color: var(--pure-white); }
+    .dark-slide p, .dark-slide li { color: rgba(255,255,255,0.7); }
+    .dark-slide .section-label { color: var(--accent-light); }
+    .dark-slide .divider { background: var(--accent-light); }
+
+    /* Pill tags */
+    .pill {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 99px;
+      font-size: 0.5em;
+      font-weight: 600;
+      margin: 0.15rem;
+      border: 1.5px solid var(--gray-200);
+      color: var(--gray-700);
+      background: transparent;
+    }
+    .pill-accent { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+    .pill-red { border-color: #fca5a5; color: var(--red); background: rgba(239,68,68,0.06); }
+    .pill-green { border-color: #86efac; color: #16a34a; background: rgba(22,163,74,0.06); }
+    .pill-amber { border-color: #fcd34d; color: #d97706; background: rgba(245,158,11,0.06); }
+
+    /* Grid layout */
+    .grid { display: grid; gap: 1.5rem; margin-top: 1.2rem; }
+    .grid-2 { grid-template-columns: 1fr 1fr; }
+    .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+    /* Minimal card */
+    .m-card {
+      padding: 1.2rem;
+      border: 1px solid var(--gray-200);
+      border-radius: 16px;
+      background: var(--pure-white);
+    }
+    .m-card h4 {
+      font-size: 0.75em; font-weight: 700;
+      margin: 0 0 0.5rem 0; color: var(--black);
+    }
+    .m-card p { font-size: 0.6em; margin: 0; color: var(--gray-500); }
+    .dark-slide .m-card { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); }
+    .dark-slide .m-card h4 { color: var(--pure-white); }
+    .dark-slide .m-card p { color: rgba(255,255,255,0.5); }
+
+    /* Stat / big number */
+    .stat { text-align: center; }
+    .stat-number {
+      font-size: 3.2em; font-weight: 900;
+      letter-spacing: -0.04em; line-height: 1;
+      color: var(--black);
+    }
+    .stat-number.accent { color: var(--accent); }
+    .stat-number.red { color: var(--red); }
+    .stat-label { font-size: 0.6em; color: var(--gray-500); margin-top: 0.3rem; }
+    .dark-slide .stat-number { color: var(--pure-white); }
+    .dark-slide .stat-label { color: rgba(255,255,255,0.5); }
+
+    /* Flow / pipeline */
+    .flow-h { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin: 1rem 0; }
+    .flow-item {
+      padding: 0.5rem 1rem;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 10px;
+      font-size: 0.6em;
+      font-weight: 600;
+      color: var(--gray-700);
+      background: var(--pure-white);
+    }
+    .flow-item.active { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+    .flow-arrow { color: var(--gray-400); font-size: 0.8em; }
+    .dark-slide .flow-item { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.15); color: rgba(255,255,255,0.7); }
+    .dark-slide .flow-item.active { border-color: var(--accent-light); color: var(--accent-light); background: rgba(29,209,161,0.1); }
+    .dark-slide .flow-arrow { color: rgba(255,255,255,0.3); }
+
+    /* Step list */
+    .step-list { list-style: none; padding: 0; margin: 1.2rem 0; counter-reset: step; }
+    .step-list li {
+      display: flex; align-items: flex-start; gap: 0.8rem;
+      padding: 0.6rem 0; font-size: 0.68em;
+      border-bottom: 1px solid var(--gray-100);
+      color: var(--gray-700);
+    }
+    .step-list li:last-child { border-bottom: none; }
+    .step-list li::before {
+      counter-increment: step;
+      content: counter(step);
+      background: var(--black);
+      color: var(--pure-white);
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.8em; flex-shrink: 0;
+    }
+    .dark-slide .step-list li { border-color: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
+    .dark-slide .step-list li::before { background: var(--accent-light); color: var(--black); }
+
+    /* Table */
+    .reveal table { width: 100%; border-collapse: collapse; font-size: 0.6em; margin-top: 1rem; }
+    .reveal table th {
+      text-align: left; padding: 0.7rem 1rem;
+      font-weight: 700; color: var(--black);
+      border-bottom: 2px solid var(--black);
+      font-size: 0.95em;
+    }
+    .reveal table td {
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--gray-200);
+      color: var(--gray-700);
+    }
+    .dark-slide table th { color: var(--pure-white); border-color: rgba(255,255,255,0.3); }
+    .dark-slide table td { color: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.08); }
+
+    /* Code */
+    .reveal pre {
+      width: 100%; font-size: 0.45em;
+      border-radius: 12px;
+      border: 1px solid var(--gray-200);
+      box-shadow: none;
+      background: var(--gray-100);
+    }
+    .reveal pre code {
+      font-family: 'JetBrains Mono', monospace;
+      padding: 1.2rem; border-radius: 12px;
+      background: var(--gray-100);
+      color: var(--gray-900);
+      max-height: 440px;
+    }
+    .dark-slide pre { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); }
+    .dark-slide pre code { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.85); }
+
+    /* Arch diagram - clean */
+    .arch { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; margin: 1.5rem 0; }
+    .arch-row { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
+    .arch-box {
+      border: 1.5px solid var(--gray-200); border-radius: 10px;
+      padding: 0.5rem 1.2rem; font-size: 0.6em; font-weight: 600;
+      color: var(--gray-700); background: var(--pure-white);
+      min-width: 90px; text-align: center;
+    }
+    .arch-box.green { border-color: #86efac; color: #16a34a; }
+    .arch-box.blue { border-color: #93c5fd; color: var(--blue); }
+    .arch-box.red { border-color: #fca5a5; color: var(--red); }
+    .arch-box.purple { border-color: #c4b5fd; color: #7c3aed; }
+    .arch-box.amber { border-color: #fcd34d; color: #d97706; }
+    .arch-box.accent { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+    .arch-conn { color: var(--gray-400); font-size: 0.9em; }
+    .dark-slide .arch-box { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.12); color: rgba(255,255,255,0.6); }
+    .dark-slide .arch-box.green { border-color: rgba(34,197,94,0.4); color: #4ade80; }
+    .dark-slide .arch-box.blue { border-color: rgba(59,130,246,0.4); color: #60a5fa; }
+    .dark-slide .arch-box.red { border-color: rgba(239,68,68,0.3); color: #f87171; }
+    .dark-slide .arch-box.purple { border-color: rgba(139,92,246,0.3); color: #a78bfa; }
+    .dark-slide .arch-box.amber { border-color: rgba(245,158,11,0.3); color: #fbbf24; }
+    .dark-slide .arch-box.accent { border-color: rgba(29,209,161,0.4); color: var(--accent-light); background: rgba(29,209,161,0.08); }
+    .dark-slide .arch-conn { color: rgba(255,255,255,0.2); }
+
+    /* Bar chart visual */
+    .bar-row { display: flex; align-items: center; gap: 1rem; margin: 0.5rem 0; }
+    .bar-label { font-size: 0.6em; font-weight: 600; width: 70px; text-align: right; color: var(--gray-500); }
+    .bar-track { flex: 1; height: 32px; background: var(--gray-100); border-radius: 8px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 8px; display: flex; align-items: center; padding-left: 0.8rem; font-size: 0.55em; font-weight: 700; color: var(--pure-white); }
+
+    /* Transition quote */
+    .quote-text {
+      font-size: 1.6em; font-weight: 300;
+      color: var(--gray-700); line-height: 1.4;
+      max-width: 700px;
+    }
+    .dark-slide .quote-text { color: rgba(255,255,255,0.8); }
+
+    /* Fragment override */
+    .reveal .fragment { opacity: 0; }
+    .reveal .fragment.visible { opacity: 1; }
+    .reveal .fragment.fade-up { transform: translateY(20px); transition: opacity 0.4s, transform 0.4s; }
+    .reveal .fragment.fade-up.visible { transform: translateY(0); }
+
+    /* Progress bar color */
+    .reveal .progress span { background: var(--accent); }
+
+    /* Slide number */
+    .reveal .slide-number { color: var(--gray-400); font-family: 'Inter', sans-serif; font-size: 0.6em; }
+
+    /* Controls */
+    .reveal .controls { color: var(--gray-400); }
+
+    /* Comparison visual */
+    .vs-container { display: flex; align-items: center; gap: 2rem; justify-content: center; margin: 2rem 0; }
+    .vs-divider { font-size: 1.2em; font-weight: 800; color: var(--gray-400); }
+
+    /* LGTM visual */
+    .lgtm-letter {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 56px; height: 56px; border-radius: 14px;
+      font-size: 1.4em; font-weight: 900; color: var(--pure-white);
+      margin-right: 0.3rem;
+    }
+
+    /* Reveal override for white bg */
+    .reveal .slide-background { background: var(--white); }
+    section:not(.dark-slide) { background: transparent; }
+  </style>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================================ -->
+      <!-- TITLE -->
+      <!-- ============================================ -->
+      <section class="center-slide">
+        <div class="section-label">Presentation</div>
+        <h1 style="font-size:2.4em; max-width:800px; margin:0 auto;">CI/CD, Cloud Deployment &amp; Observability</h1>
+        <hr class="divider" style="margin:1.5rem auto;" />
+        <p style="font-size:0.8em; color:var(--gray-500); max-width:500px; margin:0 auto;">From industry scale to your first deployment</p>
+      </section>
+
+      <!-- AGENDA -->
+      <section>
+        <div class="section-label">Overview</div>
+        <h2>What we'll cover</h2>
+        <div class="grid grid-3" style="margin-top:2rem;">
+          <div>
+            <p style="font-size:1.6em; margin:0; font-weight:800; color:var(--black);">01</p>
+            <p style="font-weight:600; color:var(--black); font-size:0.8em;">Industry Reality</p>
+            <p style="font-size:0.6em;">How the big players do it at scale</p>
+          </div>
+          <div>
+            <p style="font-size:1.6em; margin:0; font-weight:800; color:var(--black);">02</p>
+            <p style="font-weight:600; color:var(--black); font-size:0.8em;">Our Deployed Stack</p>
+            <p style="font-size:0.6em;">Docker Compose + Traefik + Observability on VPS</p>
+          </div>
+          <div>
+            <p style="font-size:1.6em; margin:0; font-weight:800; color:var(--black);">03</p>
+            <p style="font-weight:600; color:var(--black); font-size:0.8em;">Putting It Together</p>
+            <p style="font-size:0.6em;">Comparison &amp; key takeaways</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================ -->
+      <!-- PART 1 DIVIDER -->
+      <!-- ============================================ -->
+      <section class="center-slide dark-slide" data-background-color="#0d0d0d">
+        <p style="font-size:5em; font-weight:900; color:rgba(255,255,255,0.06); line-height:1; margin:0;">01</p>
+        <h1 style="font-size:2.4em; margin-top:-0.3em;">Industry Reality</h1>
+        <p style="font-size:0.75em; color:rgba(255,255,255,0.4);">What real production deployments look like</p>
+      </section>
+
+      <!-- Architecture at Scale -->
+      <section>
+        <div class="section-label">Part 01</div>
+        <h2>Architecture at Scale</h2>
+        <div class="arch">
+          <div class="arch-row"><div class="arch-box blue">Users / CDN</div></div>
+          <div class="arch-conn">↓</div>
+          <div class="arch-row"><div class="arch-box amber">Load Balancer / Ingress</div></div>
+          <div class="arch-conn">↓</div>
+          <div class="arch-row">
+            <div class="arch-box green">Service A</div>
+            <div class="arch-box green">Service B</div>
+            <div class="arch-box green">Service C</div>
+          </div>
+          <div class="arch-conn">↓</div>
+          <div class="arch-row">
+            <div class="arch-box red">Database</div>
+            <div class="arch-box red">Cache</div>
+            <div class="arch-box red">Queue</div>
+          </div>
+          <div class="arch-conn">↓</div>
+          <div class="arch-row"><div class="arch-box purple">Monitoring / Observability</div></div>
+        </div>
+        <p style="text-align:center; font-size:0.6em; color:var(--gray-400);">Microservices · Kubernetes · Service Mesh · Multi-region</p>
+      </section>
+
+      <!-- Autoscaling -->
+      <section>
+        <div class="section-label">Part 01</div>
+        <h2>Autoscaling</h2>
+        <p style="color:var(--gray-500);">Handle traffic spikes automatically</p>
+        <div class="grid grid-2" style="margin-top:1.5rem;">
+          <div class="m-card">
+            <h4>Horizontal Scaling →</h4>
+            <p>Add more instances to distribute load</p>
+            <p style="margin-top:0.8rem;">
+              <span class="pill pill-accent">Kubernetes HPA</span>
+              <span class="pill pill-accent">KEDA</span>
+            </p>
+          </div>
+          <div class="m-card">
+            <h4>Vertical Scaling ↑</h4>
+            <p>Make existing instances bigger (more CPU, RAM)</p>
+            <p style="margin-top:0.8rem;">
+              <span class="pill pill-amber">More CPU</span>
+              <span class="pill pill-amber">More RAM</span>
+            </p>
+          </div>
+        </div>
+        <div class="m-card" style="margin-top:1rem;">
+          <h4 style="color:var(--gray-700);">Cloud resources = rent. Autoscaling saves money by scaling down too.</h4>
+        </div>
+      </section>
+
+      <!-- Deployment Strategies -->
+      <section>
+        <div class="section-label">Part 01</div>
+        <h2>Deployment Strategies</h2>
+        <p style="color:var(--gray-500);">Ship code without breaking things</p>
+        <table>
+          <thead>
+            <tr><th>Strategy</th><th>How It Works</th><th>Risk</th><th>Downtime</th></tr>
+          </thead>
+          <tbody>
+            <tr class="fragment fade-up">
+              <td style="font-weight:600;">Blue / Green</td>
+              <td>Two identical envs — switch all traffic at once</td>
+              <td><span class="pill pill-green">Low</span></td>
+              <td>Zero</td>
+            </tr>
+            <tr class="fragment fade-up">
+              <td style="font-weight:600;">Canary</td>
+              <td>Gradually shift 5% → 25% → 100% of traffic</td>
+              <td><span class="pill pill-green">Low</span></td>
+              <td>Zero</td>
+            </tr>
+            <tr class="fragment fade-up">
+              <td style="font-weight:600;">Rolling</td>
+              <td>Replace instances one by one</td>
+              <td><span class="pill pill-amber">Medium</span></td>
+              <td>Zero</td>
+            </tr>
+            <tr class="fragment fade-up">
+              <td style="font-weight:600;">Recreate</td>
+              <td>Kill all old, start all new</td>
+              <td><span class="pill pill-red">High</span></td>
+              <td>Yes</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Blue/Green Visual -->
+      <section class="center-slide">
+        <div class="section-label">Part 01 · Deployment</div>
+        <h2>Blue / Green</h2>
+        <div class="vs-container" style="margin-top:2.5rem;">
+          <div style="text-align:center;">
+            <div style="width:160px; height:160px; border-radius:20px; border:2px solid var(--blue); display:flex; align-items:center; justify-content:center; flex-direction:column; background:rgba(59,130,246,0.05);">
+              <span style="font-size:1.8em; font-weight:900; color:var(--blue);">v1.0</span>
+              <span style="font-size:0.6em; color:var(--gray-500); margin-top:0.3rem;">Blue · Current</span>
+            </div>
+          </div>
+          <div class="vs-divider">⇄</div>
+          <div style="text-align:center;">
+            <div style="width:160px; height:160px; border-radius:20px; border:2px solid #16a34a; display:flex; align-items:center; justify-content:center; flex-direction:column; background:rgba(22,163,74,0.05);">
+              <span style="font-size:1.8em; font-weight:900; color:#16a34a;">v2.0</span>
+              <span style="font-size:0.6em; color:var(--gray-500); margin-top:0.3rem;">Green · New</span>
+            </div>
+          </div>
+        </div>
+        <p style="font-size:0.7em; color:var(--gray-500); margin-top:1.5rem;">Switch all traffic at once. Instant rollback — just switch back.</p>
+      </section>
+
+      <!-- Canary Visual -->
+      <section>
+        <div class="section-label">Part 01 · Deployment</div>
+        <h2>Canary</h2>
+        <p style="color:var(--gray-500); margin-bottom:1.5rem;">Gradually shift traffic to the new version</p>
+        <div class="fragment fade-up" style="margin-bottom:1rem;">
+          <div class="bar-row">
+            <span class="bar-label">Phase 1</span>
+            <div class="bar-track">
+              <div style="display:flex; height:100%;">
+                <div class="bar-fill" style="width:95%; background:var(--blue);">v1</div>
+                <div class="bar-fill" style="width:5%; background:#16a34a;"></div>
+              </div>
+            </div>
+            <span style="font-size:0.6em; color:var(--gray-500); width:50px;">5%</span>
+          </div>
+        </div>
+        <div class="fragment fade-up" style="margin-bottom:1rem;">
+          <div class="bar-row">
+            <span class="bar-label">Phase 2</span>
+            <div class="bar-track">
+              <div style="display:flex; height:100%;">
+                <div class="bar-fill" style="width:75%; background:var(--blue);">v1</div>
+                <div class="bar-fill" style="width:25%; background:#16a34a;">v2</div>
+              </div>
+            </div>
+            <span style="font-size:0.6em; color:var(--gray-500); width:50px;">25%</span>
+          </div>
+        </div>
+        <div class="fragment fade-up" style="margin-bottom:1rem;">
+          <div class="bar-row">
+            <span class="bar-label">Phase 3</span>
+            <div class="bar-track">
+              <div style="display:flex; height:100%;">
+                <div class="bar-fill" style="width:100%; background:#16a34a;">v2 — fully rolled out</div>
+              </div>
+            </div>
+            <span style="font-size:0.6em; color:var(--gray-500); width:50px;">100%</span>
+          </div>
+        </div>
+        <p style="font-size:0.65em; color:var(--gray-400); margin-top:1rem;">If errors spike → rollback immediately. Minimal blast radius.</p>
+      </section>
+
+      <!-- Three Pillars -->
+      <section>
+        <div class="section-label">Part 01</div>
+        <h2>The Three Pillars of Observability</h2>
+        <div class="grid grid-3" style="margin-top:1.5rem;">
+          <div class="m-card fragment fade-up" style="text-align:center;">
+            <p style="font-size:2em; margin:0 0 0.5rem 0;">📝</p>
+            <h4>Logs</h4>
+            <p style="font-weight:500; color:var(--black);">What happened?</p>
+            <p style="margin-top:0.5rem;">Structured event records.<br/>"User X got error 500 at 14:03"</p>
+          </div>
+          <div class="m-card fragment fade-up" style="text-align:center;">
+            <p style="font-size:2em; margin:0 0 0.5rem 0;">📊</p>
+            <h4>Metrics</h4>
+            <p style="font-weight:500; color:var(--black);">How is it performing?</p>
+            <p style="margin-top:0.5rem;">Numbers over time.<br/>CPU, memory, request rate</p>
+          </div>
+          <div class="m-card fragment fade-up" style="text-align:center;">
+            <p style="font-size:2em; margin:0 0 0.5rem 0;">🔍</p>
+            <h4>Traces</h4>
+            <p style="font-weight:500; color:var(--black);">Where did the request go?</p>
+            <p style="margin-top:0.5rem;">Follow a request across services. Find the bottleneck</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Industry CI/CD Pipeline -->
+      <section>
+        <div class="section-label">Part 01</div>
+        <h2>Industry CI/CD Pipelines</h2>
+        <ul class="step-list">
+          <li class="fragment fade-up"><strong>Code</strong> — Developer pushes to Git</li>
+          <li class="fragment fade-up"><strong>Build</strong> — Compile, bundle, create artifacts</li>
+          <li class="fragment fade-up"><strong>Test</strong> — Unit, integration, E2E tests</li>
+          <li class="fragment fade-up"><strong>Security Scan</strong> — SAST, dependency audit, container scan</li>
+          <li class="fragment fade-up"><strong>Staging</strong> — Deploy to pre-production</li>
+          <li class="fragment fade-up"><strong>Approval</strong> — Manual gate or automated checks</li>
+          <li class="fragment fade-up"><strong>Production</strong> — Canary / Blue-Green deploy</li>
+        </ul>
+        <p style="margin-top:0.5rem;">
+          <span class="pill">ArgoCD</span>
+          <span class="pill">GitOps</span>
+          <span class="pill">Terraform</span>
+          <span class="pill">GHCR / ECR</span>
+        </p>
+      </section>
+
+      <!-- TRANSITION -->
+      <section class="center-slide dark-slide" data-background-color="#0d0d0d">
+        <p class="quote-text" style="max-width:650px; margin:0 auto;">That's the enterprise world.<br/><br/>But you don't need all of this to get started.</p>
+        <hr class="divider" style="margin:2rem auto;" />
+        <p style="font-size:0.9em; color:var(--accent-light); font-weight:600;">Let me show you something you can set up this weekend.</p>
+      </section>
+
+      <!-- ============================================ -->
+      <!-- PART 2 DIVIDER -->
+      <!-- ============================================ -->
+      <section class="center-slide dark-slide" data-background-color="#0d0d0d">
+        <p style="font-size:5em; font-weight:900; color:rgba(255,255,255,0.06); line-height:1; margin:0;">02</p>
+        <h1 style="font-size:2.4em; margin-top:-0.3em;">Our Deployed Stack</h1>
+        <p style="font-size:0.75em; color:rgba(255,255,255,0.4);">Docker Compose + Traefik + Observability on VPS</p>
+      </section>
+
+      <!-- Why Docker -->
+      <section>
+        <div class="section-label">Part 02 · Docker</div>
+        <h2>Why Docker?</h2>
+        <div class="grid grid-2" style="margin-top:1.5rem;">
+          <div class="m-card">
+            <h4 style="color:var(--red);">The Problem</h4>
+            <p style="font-weight:600; font-size:0.7em; color:var(--black);">"It works on my machine" &trade;</p>
+            <ul style="font-size:0.95em; margin-top:0.5rem;">
+              <li>Different OS versions</li>
+              <li>Different dependency versions</li>
+              <li>Missing system libraries</li>
+              <li>Configuration drift</li>
+            </ul>
+          </div>
+          <div class="m-card">
+            <h4 style="color:var(--accent);">The Solution</h4>
+            <p style="font-weight:600; font-size:0.7em; color:var(--black);">Package everything into a container</p>
+            <ul style="font-size:0.95em; margin-top:0.5rem;">
+              <li>Same environment everywhere</li>
+              <li>Reproducible builds</li>
+              <li>Isolated dependencies</li>
+              <li>Ship it anywhere</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Multi-stage builds: the numbers -->
+      <section class="center-slide">
+        <div class="section-label">Part 02 · Docker</div>
+        <h2>Multi-Stage Builds</h2>
+        <p style="color:var(--gray-500); margin-bottom:2rem;">3-stage build: deps → build → run</p>
+        <div class="vs-container">
+          <div class="stat">
+            <div class="stat-number red">1.2<span style="font-size:0.5em;">GB</span></div>
+            <div class="stat-label">Full Node + Bun image</div>
+          </div>
+          <div class="vs-divider">→</div>
+          <div class="stat">
+            <div class="stat-number accent">~120<span style="font-size:0.5em;">MB</span></div>
+            <div class="stat-label">Next.js standalone + Alpine</div>
+          </div>
+        </div>
+        <p style="font-size:0.7em; color:var(--gray-400); margin-top:2rem;">90% smaller. Faster CI/CD. Faster deploys. Less cost.</p>
+      </section>
+
+      <!-- Multi-stage: the code -->
+      <section>
+        <div class="section-label">Part 02 · Docker</div>
+        <h2>Our Actual Dockerfile</h2>
+        <pre><code class="dockerfile" data-trim data-noescape>
+# Stage 1: Install dependencies (Bun for speed)
+FROM oven/bun:1.2.21-alpine AS deps
+WORKDIR /app
+COPY package.json bun.lock turbo.json ./
+COPY apps/web/package.json apps/web/package.json
+COPY packages/*/package.json ./packages/
+RUN bun install --frozen-lockfile
+
+# Stage 2: Build the Next.js app
+FROM deps AS builder
+COPY . .
+RUN bun run build
+
+# Stage 3: Production runner (minimal)
+FROM node:22-alpine AS runner
+RUN addgroup -S nodejs &amp;&amp; adduser -S nextjs -G nodejs
+COPY --from=builder --chown=nextjs:nodejs \
+  /app/apps/web/.next/standalone ./
+USER nextjs
+CMD ["node", "apps/web/server.js"]
+        </code></pre>
+        <p style="margin-top:0.8rem;">
+          <span class="pill pill-accent">Bun for fast installs</span>
+          <span class="pill">Next.js standalone output</span>
+          <span class="pill">Non-root user</span>
+        </p>
+      </section>
+
+      <!-- Docker Compose -->
+      <section>
+        <div class="section-label">Part 02 · Docker Compose</div>
+        <h2>compose.prod.yml — 10 services</h2>
+        <pre><code class="yaml" data-trim data-noescape>
+services:
+  # ── Reverse Proxy ───────────────────
+  traefik:               # Auto SSL + routing
+    image: traefik:v3.6.1
+    ports: ["80:80", "443:443"]
+
+  # ── Application ─────────────────────
+  web:                   # Next.js (from GHCR)
+    image: ${WEB_IMAGE}
+    depends_on: [postgres]
+
+  postgres:              # Database
+    image: postgres:16-alpine
+
+  # ── Observability ───────────────────
+  prometheus:            # Metrics collection
+  loki:                  # Log aggregation
+  alloy:                 # Log shipping (Grafana Alloy)
+  grafana:               # Dashboards &amp; visualization
+
+  # ── System Metrics ──────────────────
+  node-exporter:         # Host CPU, RAM, disk
+  cadvisor:              # Container metrics
+        </code></pre>
+      </section>
+
+      <!-- Docker Compose Diagram -->
+      <section>
+        <div class="section-label">Part 02 · Docker Compose</div>
+        <h2>Architecture — How it connects</h2>
+        <div class="arch" style="margin-top:1rem;">
+          <div class="arch-row"><div class="arch-box blue" style="min-width:280px;">🌐 Browser (HTTPS)</div></div>
+          <div class="arch-conn">↓ ports 80 / 443</div>
+          <div class="arch-row"><div class="arch-box amber" style="min-width:280px;">Traefik v3 — Reverse Proxy + Auto SSL</div></div>
+          <div class="arch-conn">↓ app.domain.com &nbsp;&nbsp;&nbsp; ↓ grafana.domain.com</div>
+          <div class="arch-row">
+            <div class="arch-box green">web (Next.js)</div>
+            <div class="arch-box purple">Grafana</div>
+          </div>
+          <div class="arch-conn">↓ internal network</div>
+          <div class="arch-row">
+            <div class="arch-box red">PostgreSQL</div>
+            <div class="arch-box amber">Prometheus</div>
+            <div class="arch-box amber">Loki</div>
+            <div class="arch-box accent">Alloy</div>
+          </div>
+          <div class="arch-conn">↑ scrape metrics</div>
+          <div class="arch-row">
+            <div class="arch-box">node-exporter</div>
+            <div class="arch-box">cadvisor</div>
+          </div>
+        </div>
+        <p style="text-align:center; font-size:0.55em; color:var(--gray-400); margin-top:0.5rem;">Two Docker networks: <strong>public</strong> (Traefik-facing) &amp; <strong>internal</strong> (backend services)</p>
+      </section>
+
+      <!-- Traefik -->
+      <section>
+        <div class="section-label">Part 02 · Reverse Proxy</div>
+        <h2>Traefik v3</h2>
+        <p style="color:var(--gray-500); margin-bottom:1rem;">Cloud-native reverse proxy — replaces Nginx + Certbot</p>
+        <div class="grid grid-3" style="margin-top:1rem;">
+          <div class="m-card" style="text-align:center;">
+            <h4>Auto SSL</h4>
+            <p>Let's Encrypt certs<br/>via HTTP-01 challenge.<br/>Zero config renewal.</p>
+          </div>
+          <div class="m-card" style="text-align:center;">
+            <h4>Docker Labels</h4>
+            <p>Route traffic with<br/>container labels.<br/>No config files needed.</p>
+          </div>
+          <div class="m-card" style="text-align:center;">
+            <h4>Built-in Metrics</h4>
+            <p>Exposes Prometheus<br/>metrics automatically.<br/>Request rates, latency.</p>
+          </div>
+        </div>
+        <pre style="margin-top:1rem;"><code class="yaml" data-trim data-noescape>
+# Docker labels on the web service:
+- "traefik.http.routers.web.rule=Host(`app.${DOMAIN}`)"
+- traefik.http.routers.web.tls.certresolver=letsencrypt
+- traefik.http.services.web.loadbalancer.server.port=3000
+        </code></pre>
+      </section>
+
+      <!-- Observability Stack -->
+      <section>
+        <div class="section-label">Part 02 · Observability</div>
+        <h2>Our Observability Stack</h2>
+        <p style="color:var(--gray-500); margin-bottom:1rem;">Prometheus + Loki + Alloy + Grafana</p>
+        <div class="grid grid-2">
+          <div class="m-card">
+            <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.5rem;">
+              <span class="lgtm-letter" style="background:#e6522c; width:36px; height:36px; font-size:0.9em; border-radius:8px;">P</span>
+              <h4 style="margin:0;">Prometheus — Metrics</h4>
+            </div>
+            <p>Scrapes metrics from web app, Traefik, node-exporter, cadvisor every 15s. PromQL queries.</p>
+          </div>
+          <div class="m-card">
+            <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.5rem;">
+              <span class="lgtm-letter" style="background:#f59e0b; width:36px; height:36px; font-size:0.9em; border-radius:8px;">L</span>
+              <h4 style="margin:0;">Loki — Logs</h4>
+            </div>
+            <p>"grep for your containers." Indexes labels, stores log lines. Query with LogQL.</p>
+          </div>
+          <div class="m-card">
+            <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.5rem;">
+              <span class="lgtm-letter" style="background:#3b82f6; width:36px; height:36px; font-size:0.9em; border-radius:8px;">A</span>
+              <h4 style="margin:0;">Grafana Alloy — Collector</h4>
+            </div>
+            <p>Collects Docker container logs via the Docker socket and ships them to Loki.</p>
+          </div>
+          <div class="m-card">
+            <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.5rem;">
+              <span class="lgtm-letter" style="background:#ea580c; width:36px; height:36px; font-size:0.9em; border-radius:8px;">G</span>
+              <h4 style="margin:0;">Grafana — Dashboards</h4>
+            </div>
+            <p>Visualize logs &amp; metrics in one place. Pre-provisioned with Prometheus + Loki data sources.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Observability Data Flow -->
+      <section class="center-slide">
+        <div class="section-label">Part 02 · Observability</div>
+        <h2>Data Flow</h2>
+        <div style="margin-top:1.5rem;">
+          <div class="flow-h" style="justify-content:center;">
+            <div class="flow-item">Docker Containers</div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-item" style="border-color:#3b82f6; color:#3b82f6;">Alloy (collector)</div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-item" style="border-color:#f59e0b; color:#d97706;">Loki (logs)</div>
+          </div>
+          <div class="flow-h" style="justify-content:center; margin-top:0.5rem;">
+            <div class="flow-item">web · traefik · node-exporter · cadvisor</div>
+            <span class="flow-arrow">←</span>
+            <div class="flow-item" style="border-color:#e6522c; color:#e6522c;">Prometheus (scrape)</div>
+          </div>
+          <div class="flow-h" style="justify-content:center; margin-top:1.5rem;">
+            <div class="flow-item" style="border-color:#f59e0b; color:#d97706;">Loki</div>
+            <div class="flow-item" style="border-color:#e6522c; color:#e6522c;">Prometheus</div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-item active" style="font-size:0.7em;">Grafana</div>
+          </div>
+        </div>
+        <p style="font-size:0.6em; color:var(--gray-400); margin-top:1rem;">Logs + Metrics unified in Grafana. Query: <code style="background:var(--gray-100); padding:0.15rem 0.4rem; border-radius:4px; font-size:0.9em;">{stack="ai20k-demo"}</code></p>
+      </section>
+
+      <!-- CI/CD GitHub Actions -->
+      <section>
+        <div class="section-label">Part 02 · CI/CD</div>
+        <h2>GitHub Actions — Our Actual Workflow</h2>
+        <div class="flow-h" style="margin:1rem 0;">
+          <div class="flow-item">Push to master</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-item active">Build &amp; Push</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-item" style="border-color:#16a34a; color:#16a34a;">GHCR</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-item" style="border-color:#d97706; color:#d97706;">SSH Deploy to VPS</div>
+        </div>
+        <pre><code class="yaml" data-trim data-noescape>
+name: Build and Deploy VPS
+on:
+  push:
+    branches: [master, main]
+
+jobs:
+  build:  # Job 1: Build image & push to GHCR
+    steps:
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3      # GHCR auth
+      - uses: docker/metadata-action@v5    # Smart tagging
+        # tags: branch, sha-xxx, latest
+      - uses: docker/build-push-action@v6  # Build + push
+        with: { cache-from: type=gha }     # GHA cache
+
+  deploy:  # Job 2: SSH into VPS & restart
+    needs: build
+    steps:
+      - name: Pull and restart on VPS
+        run: |
+          ssh vps "cd /opt/ai20k-demo && \
+            docker compose pull web && \
+            docker compose up -d --remove-orphans"
+        </code></pre>
+      </section>
+
+      <!-- GHCR -->
+      <section>
+        <div class="section-label">Part 02 · Registry</div>
+        <h2>GitHub Container Registry</h2>
+        <div class="grid grid-2" style="margin-top:1.5rem;">
+          <div>
+            <h3 style="color:var(--black); font-weight:700;">What is GHCR?</h3>
+            <ul style="margin-top:0.8rem;">
+              <li>Free container registry by GitHub</li>
+              <li>Stores your Docker images</li>
+              <li>Private repos = private images</li>
+              <li>Built-in with GitHub Actions</li>
+            </ul>
+          </div>
+          <div>
+            <h3 style="color:var(--black); font-weight:700;">Our image tags</h3>
+            <pre style="margin-top:0.8rem;"><code class="bash" data-trim>
+# Our image on GHCR:
+ghcr.io/hoangnb24/ai20k-demo/web:master
+ghcr.io/hoangnb24/ai20k-demo/web:sha-abc123
+ghcr.io/hoangnb24/ai20k-demo/web:latest
+
+# Deploy uses the SHA tag for traceability
+            </code></pre>
+          </div>
+        </div>
+        <p style="margin-top:1.5rem; font-size:0.65em; color:var(--gray-400);">No Docker Hub needed. Integrates seamlessly with your GitHub workflow.</p>
+      </section>
+
+      <!-- Cloudflare DNS -->
+      <section>
+        <div class="section-label">Part 02 · DNS</div>
+        <h2>Cloudflare DNS</h2>
+        <p style="color:var(--gray-500); margin-bottom:1rem;">Point subdomains to VPS — Traefik handles the rest</p>
+        <table>
+          <thead>
+            <tr><th>Type</th><th>Name</th><th>Content</th><th>Proxy</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>A</td>
+              <td style="font-weight:600;">app</td>
+              <td>VPS IP</td>
+              <td><span class="pill">DNS only</span></td>
+            </tr>
+            <tr>
+              <td>A</td>
+              <td style="font-weight:600;">grafana</td>
+              <td>VPS IP</td>
+              <td><span class="pill">DNS only</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="margin-top:1rem; font-size:0.65em; color:var(--gray-500);">DNS only (gray cloud) so Traefik's Let's Encrypt HTTP-01 challenge works. Port 80 must reach the VPS directly.</p>
+      </section>
+
+      <!-- Deploy Steps -->
+      <section>
+        <div class="section-label">Part 02 · Deployment</div>
+        <h2>VPS Deployment Steps</h2>
+        <ul class="step-list">
+          <li class="fragment fade-up">Get a VPS — install Docker + Docker Compose</li>
+          <li class="fragment fade-up">Clone the repo: <code style="background:var(--gray-100); padding:0.1rem 0.4rem; border-radius:4px; font-size:0.9em;">git clone</code> into <code style="background:var(--gray-100); padding:0.1rem 0.4rem; border-radius:4px; font-size:0.9em;">/opt/ai20k-demo</code></li>
+          <li class="fragment fade-up">Create <code style="background:var(--gray-100); padding:0.1rem 0.4rem; border-radius:4px;">.env.prod</code> — domain, DB passwords, API keys</li>
+          <li class="fragment fade-up">Set up Cloudflare DNS A records → VPS IP</li>
+          <li class="fragment fade-up"><code style="background:var(--gray-100); padding:0.1rem 0.4rem; border-radius:4px; font-size:0.9em;">docker compose -f compose.prod.yml up -d</code></li>
+          <li class="fragment fade-up">GitHub Actions auto-deploys on every push to <strong>master</strong></li>
+        </ul>
+      </section>
+
+      <!-- Complete Pipeline -->
+      <section class="center-slide">
+        <div class="section-label">Part 02</div>
+        <h2>The Complete Picture</h2>
+        <div class="arch" style="margin-top:1.5rem;">
+          <div class="arch-row"><div class="arch-box blue" style="min-width:260px;">Developer pushes to master</div></div>
+          <div class="arch-conn">↓</div>
+          <div class="arch-row"><div class="arch-box accent" style="min-width:260px;">GitHub Actions — Build &amp; Push</div></div>
+          <div class="arch-conn">↓ image pushed</div>
+          <div class="arch-row"><div class="arch-box green" style="min-width:260px;">GHCR (ghcr.io/.../web:sha-xxx)</div></div>
+          <div class="arch-conn">↓ SSH → pull &amp; restart</div>
+          <div class="arch-row"><div class="arch-box amber" style="min-width:260px;">VPS — Docker Compose + Traefik</div></div>
+          <div class="arch-conn">↓ runs</div>
+          <div class="arch-row">
+            <div class="arch-box green">web</div>
+            <div class="arch-box red">postgres</div>
+            <div class="arch-box purple">grafana</div>
+            <div class="arch-box amber">prometheus + loki</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================ -->
+      <!-- PART 3 DIVIDER -->
+      <!-- ============================================ -->
+      <section class="center-slide dark-slide" data-background-color="#0d0d0d">
+        <p style="font-size:5em; font-weight:900; color:rgba(255,255,255,0.06); line-height:1; margin:0;">03</p>
+        <h1 style="font-size:2.4em; margin-top:-0.3em;">Putting It Together</h1>
+        <p style="font-size:0.75em; color:rgba(255,255,255,0.4);">Industry vs Our Stack &amp; Key Takeaways</p>
+      </section>
+
+      <!-- Comparison Table -->
+      <section>
+        <div class="section-label">Part 03</div>
+        <h2>Industry vs Our Deployed Stack</h2>
+        <table>
+          <thead>
+            <tr><th>Aspect</th><th>Industry</th><th>Our Stack</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600;">Orchestration</td>
+              <td>Kubernetes</td>
+              <td><span class="pill pill-accent">Docker Compose</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">CI/CD</td>
+              <td>GitOps + ArgoCD</td>
+              <td><span class="pill pill-accent">GitHub Actions + SSH</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">Registry</td>
+              <td>ECR / Private</td>
+              <td><span class="pill pill-accent">GHCR (free)</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">Reverse Proxy</td>
+              <td>AWS ALB / Istio</td>
+              <td><span class="pill pill-accent">Traefik v3</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">SSL</td>
+              <td>ACM / Managed certs</td>
+              <td><span class="pill pill-accent">Let's Encrypt (auto)</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">Observability</td>
+              <td>Datadog / Splunk</td>
+              <td><span class="pill pill-accent">Prometheus + Loki + Grafana</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">Hosting</td>
+              <td>AWS / GCP / Azure</td>
+              <td><span class="pill pill-accent">VPS + Cloudflare DNS</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">Cost</td>
+              <td><span class="pill pill-red">$$$$</span></td>
+              <td><span class="pill pill-green">$5-10/month</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Key Takeaways -->
+      <section>
+        <div class="section-label">Part 03</div>
+        <h2>Key Takeaways</h2>
+        <ul class="step-list" style="counter-reset:step;">
+          <li class="fragment fade-up"><strong>Start simple.</strong> Docker Compose + VPS + Traefik is enough for production.</li>
+          <li class="fragment fade-up"><strong>Observability from day 1.</strong> Prometheus + Loki + Grafana — free and powerful.</li>
+          <li class="fragment fade-up"><strong>Automate deployments.</strong> GitHub Actions → GHCR → SSH deploy on every push.</li>
+          <li class="fragment fade-up"><strong>Optimize your images.</strong> Multi-stage builds (Bun → build → Alpine runner).</li>
+          <li class="fragment fade-up"><strong>Know the industry.</strong> Understand K8s and cloud — so you can grow into them.</li>
+        </ul>
+      </section>
+
+      <!-- Q&A -->
+      <section class="center-slide dark-slide" data-background-color="#0d0d0d">
+        <h1 style="font-size:3em; font-weight:900;">Q &amp; A</h1>
+        <hr class="divider" style="margin:1.5rem auto;" />
+        <div style="text-align:left; max-width:550px; margin:1.5rem auto 0;">
+          <p style="font-size:0.7em; color:rgba(255,255,255,0.5); margin-bottom:0.6rem;">"When should I switch from Docker Compose to Kubernetes?"</p>
+          <p style="font-size:0.7em; color:rgba(255,255,255,0.5); margin-bottom:0.6rem;">"Why Traefik over Nginx?"</p>
+          <p style="font-size:0.7em; color:rgba(255,255,255,0.5);">"How do you debug issues with Grafana + Loki?"</p>
+        </div>
+      </section>
+
+      <!-- Resources -->
+      <section>
+        <div class="section-label">Resources</div>
+        <h2>Learn More</h2>
+        <div class="grid grid-2" style="margin-top:1.5rem;">
+          <div class="m-card">
+            <h4>Docker</h4>
+            <p><a href="https://docs.docker.com/build/building/multi-stage/" style="color:var(--accent); text-decoration:none;">Multi-stage builds ↗</a></p>
+            <p><a href="https://docs.docker.com/compose/" style="color:var(--accent); text-decoration:none;">Docker Compose ↗</a></p>
+          </div>
+          <div class="m-card">
+            <h4>CI/CD &amp; Registry</h4>
+            <p><a href="https://docs.github.com/en/actions" style="color:var(--accent); text-decoration:none;">GitHub Actions ↗</a></p>
+            <p><a href="https://docs.github.com/en/packages" style="color:var(--accent); text-decoration:none;">GHCR ↗</a></p>
+          </div>
+          <div class="m-card">
+            <h4>Observability</h4>
+            <p><a href="https://grafana.com/docs/loki/latest/" style="color:var(--accent); text-decoration:none;">Loki Docs ↗</a></p>
+            <p><a href="https://grafana.com/docs/alloy/latest/" style="color:var(--accent); text-decoration:none;">Grafana Alloy ↗</a></p>
+            <p><a href="https://prometheus.io/docs/" style="color:var(--accent); text-decoration:none;">Prometheus ↗</a></p>
+          </div>
+          <div class="m-card">
+            <h4>Infrastructure</h4>
+            <p><a href="https://doc.traefik.io/traefik/" style="color:var(--accent); text-decoration:none;">Traefik Docs ↗</a></p>
+            <p><a href="https://developers.cloudflare.com/dns/" style="color:var(--accent); text-decoration:none;">Cloudflare DNS ↗</a></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Repo link -->
+      <section class="center-slide">
+        <div class="section-label">Source Code</div>
+        <h2>The Full Stack</h2>
+        <p style="font-size:0.85em; color:var(--gray-500); margin-bottom:1.5rem;">Everything we showed is in one repo</p>
+        <div class="m-card" style="max-width:600px; margin:0 auto; text-align:center;">
+          <h4><a href="https://github.com/hoangnb24/ai20k-demo" style="color:var(--accent); text-decoration:none;">github.com/hoangnb24/ai20k-demo ↗</a></h4>
+          <p style="margin-top:0.5rem;">Dockerfile · compose.prod.yml · deploy/ configs · GitHub Actions workflow</p>
+        </div>
+        <div class="grid grid-3" style="margin-top:1.5rem; max-width:600px; margin-left:auto; margin-right:auto;">
+          <div style="text-align:center;">
+            <span class="pill pill-accent">Dockerfile</span>
+          </div>
+          <div style="text-align:center;">
+            <span class="pill pill-accent">compose.prod.yml</span>
+          </div>
+          <div style="text-align:center;">
+            <span class="pill pill-accent">deploy-vps.yml</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Thank You -->
+      <section class="center-slide dark-slide" data-background-color="#0d0d0d">
+        <h1 style="font-size:3em;">Thank You</h1>
+        <hr class="divider" style="margin:1.5rem auto;" />
+        <p style="font-size:0.85em; color:var(--accent-light);">Now go deploy something.</p>
+      </section>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+  <script>
+    Reveal.initialize({
+      hash: true,
+      slideNumber: 'c/t',
+      transition: 'fade',
+      transitionSpeed: 'fast',
+      controlsTutorial: false,
+      progress: true,
+      center: true,
+      width: 1280,
+      height: 720,
+      margin: 0.1,
+      minScale: 0.2,
+      maxScale: 1.5,
+      disableLayout: false,
+      plugins: [RevealHighlight, RevealNotes]
+    });
+  </script>
+</body>
+</html>
