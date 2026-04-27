@@ -1,231 +1,446 @@
-0. What You Need
-  Prepare these values:
+# AWS VPS CI/CD Deployment Guide
 
-  DOMAIN=yourdomain.com
-  VPS_IP=your.vps.public.ip
-  VPS_USER=your_ssh_user
-  STACK_PATH=/opt/ai20k-demo
+This guide deploys `ai20k-demo` to a single AWS VPS with Docker Compose, Traefik, Let’s Encrypt SSL, PostgreSQL, Grafana, Prometheus, Loki, Alloy, node-exporter, and cAdvisor.
 
-  Use app.yourdomain.com and grafana.yourdomain.com. Portainer is optional for Docker admin UI access.
+Use this path for the demo because it matches the production Compose stack in this repo.
 
-  1. Cloudflare DNS
-  In Cloudflare dashboard:
+## 0. Values to prepare
 
-  Go to your domain -> DNS -> Records -> Add record.
+Replace these placeholders throughout the guide:
 
-  Create these records:
+```bash
+DOMAIN=yourdomain.com
+VPS_IP=your.vps.public.ip
+VPS_USER=ubuntu
+STACK_PATH=/opt/ai20k-demo
+ACME_EMAIL=you@example.com
+```
 
-  Type: A
-  Name: app
-  Content: VPS_IP
-  Proxy status: DNS only
-  TTL: Auto
+Required public routes:
 
-  Type: A
-  Name: grafana
-  Content: VPS_IP
-  Proxy status: DNS only
-  TTL: Auto
+- `https://app.${DOMAIN}` -> Next.js app
+- `https://slides.${DOMAIN}` -> presentation
+- `https://grafana.${DOMAIN}` -> Grafana
 
-  Important: use DNS only, gray cloud, for first deploy. Our Traefik stack uses Let’s Encrypt HTTP-01, so port 80 must reach the VPS directly.
+Optional route:
 
-  Verify from your machine:
+- `https://portainer.${DOMAIN}` -> Portainer Docker admin UI, only if the `admin` profile is enabled
 
-  dig +short app.yourdomain.com
-  dig +short grafana.yourdomain.com
+## 1. DNS setup
 
-  Each should return your VPS IP.
+Create these DNS records:
 
-  2. Prepare The VPS
-  SSH into the instance:
+| Type | Name | Content | Proxy status |
+| --- | --- | --- | --- |
+| A | `app` | `VPS_IP` | DNS only |
+| A | `slides` | `VPS_IP` | DNS only |
+| A | `grafana` | `VPS_IP` | DNS only |
 
-  ssh your_ssh_user@your.vps.public.ip
+If you want optional Portainer, also create:
 
-  Install Docker on Ubuntu:
+| Type | Name | Content | Proxy status |
+| --- | --- | --- | --- |
+| A | `portainer` | `VPS_IP` | DNS only |
 
-  sudo apt-get update
-  sudo apt-get install -y ca-certificates curl git
+For the first SSL issuance, keep records **DNS only**. If using Cloudflare, this means the gray cloud.
 
-  sudo install -m 0755 -d /etc/apt/keyrings
-  sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-  sudo chmod a+r /etc/apt/keyrings/docker.asc
+Traefik uses Let’s Encrypt HTTP-01. Let’s Encrypt must be able to reach:
 
-  echo \
-    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-    $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
-    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+```text
+http://app.${DOMAIN}/.well-known/acme-challenge/...
+http://slides.${DOMAIN}/.well-known/acme-challenge/...
+http://grafana.${DOMAIN}/.well-known/acme-challenge/...
+```
 
-  sudo apt-get update
-  sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+Verify DNS before starting Traefik:
 
-  Allow your user to run Docker:
+```bash
+dig +short app.${DOMAIN}
+dig +short slides.${DOMAIN}
+dig +short grafana.${DOMAIN}
+```
 
-  sudo usermod -aG docker "$USER"
-  newgrp docker
+Both commands must return `VPS_IP`. If they do not, stop here and fix DNS first.
 
-  Verify:
+## 2. Prepare the AWS VPS
 
-  docker --version
-  docker compose version
+SSH into the instance:
 
-  Open firewall ports:
+```bash
+ssh ${VPS_USER}@${VPS_IP}
+```
 
-  sudo ufw allow OpenSSH
-  sudo ufw allow 80/tcp
-  sudo ufw allow 443/tcp
-  sudo ufw enable
-  sudo ufw status
+Install Docker on Ubuntu:
 
-  3. Put The Stack On The VPS
-  Clone the repo into the stack path:
+```bash
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl git openssl dnsutils jq
 
-  sudo mkdir -p /opt
-  sudo chown -R "$USER":"$USER" /opt
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
 
-  cd /opt
-  git clone https://github.com/hoangnb24/ai20k-demo.git
-  cd ai20k-demo
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-  If the repo is private, clone with your normal GitHub auth method.
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo usermod -aG docker "$USER"
+newgrp docker
+```
 
-  4. Create .env.prod
+Verify:
 
-  cp .env.prod.example .env.prod
-  nano .env.prod
+```bash
+docker --version
+docker compose version
+docker version --format 'client={{.Client.Version}} server={{.Server.Version}} clientAPI={{.Client.APIVersion}} serverAPI={{.Server.APIVersion}}'
+```
 
-  Use values like this:
+Open firewall ports on the VPS:
 
-  DOMAIN=yourdomain.com
-  ACME_EMAIL=you@example.com
+```bash
+sudo ufw allow OpenSSH
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
+sudo ufw status
+```
 
-  WEB_IMAGE=ghcr.io/hoangnb24/ai20k-demo/web:master
+Also confirm the AWS Lightsail firewall or EC2 security group allows:
 
-  NODE_ENV=production
-  CORS_ORIGIN=https://app.yourdomain.com
-  DATABASE_URL=postgresql://ai20k_demo:REPLACE_WITH_STRONG_PASSWORD@postgres:5432/ai20k_demo
+- TCP `22` from your IP
+- TCP `80` from `0.0.0.0/0` and `::/0`
+- TCP `443` from `0.0.0.0/0` and `::/0`
 
-  POSTGRES_DB=ai20k_demo
-  POSTGRES_USER=ai20k_demo
-  POSTGRES_PASSWORD=REPLACE_WITH_STRONG_PASSWORD
+## 3. Put the stack on the VPS
 
-  GRAFANA_ADMIN_USER=admin
-  GRAFANA_ADMIN_PASSWORD=REPLACE_WITH_STRONG_PASSWORD
+Clone the repo:
 
-  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
-  CLERK_SECRET_KEY=sk_...
-  GOOGLE_GENERATIVE_AI_API_KEY=...
+```bash
+sudo mkdir -p /opt
+sudo chown -R "$USER":"$USER" /opt
 
-  Generate strong passwords:
+git clone https://github.com/hoangnb24/ai20k-demo.git ${STACK_PATH}
+cd ${STACK_PATH}
+```
 
-  openssl rand -base64 36
+If the repo is already cloned:
 
-  Make sure DATABASE_URL password and POSTGRES_PASSWORD match.
+```bash
+cd ${STACK_PATH}
+git fetch origin
+git checkout master
+git pull --ff-only
+```
 
-  5. Make Sure The Image Exists
-  The primary path is GitHub Actions builds and pushes:
+## 4. Create `.env.prod`
 
-  ghcr.io/hoangnb24/ai20k-demo/web:master
+Create the production env file:
 
-  If the GHCR package is private, login on the VPS:
+```bash
+cd ${STACK_PATH}
+cp .env.prod.example .env.prod
+openssl rand -base64 36
+openssl rand -base64 36
+nano .env.prod
+```
 
-  echo "YOUR_GITHUB_PAT_WITH_READ_PACKAGES" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
+Use this shape:
 
-  Then test pull:
+```bash
+DOMAIN=yourdomain.com
+ACME_EMAIL=you@example.com
 
-  docker compose --env-file .env.prod -f compose.prod.yml pull web
+WEB_IMAGE=ghcr.io/hoangnb24/ai20k-demo/web:master
 
-  If this fails because the image has not been published yet, trigger the GitHub Action first by pushing to master, or manually build on the VPS for a first test:
+NODE_ENV=production
+CORS_ORIGIN=https://app.yourdomain.com
+DATABASE_URL=postgresql://ai20k_demo:REPLACE_WITH_STRONG_PASSWORD@postgres:5432/ai20k_demo
 
-  docker build -t ai20k-demo-web:local .
+POSTGRES_DB=ai20k_demo
+POSTGRES_USER=ai20k_demo
+POSTGRES_PASSWORD=REPLACE_WITH_STRONG_PASSWORD
 
-  Then set:
+GRAFANA_ADMIN_USER=admin
+GRAFANA_ADMIN_PASSWORD=REPLACE_WITH_STRONG_PASSWORD
 
-  WEB_IMAGE=ai20k-demo-web:local
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
+CLERK_SECRET_KEY=sk_...
+GOOGLE_GENERATIVE_AI_API_KEY=...
+```
 
-  And skip pull web.
+Rules:
 
-  6. Start The Stack
-  For GHCR image:
+- `DOMAIN` must be the root domain only, for example `example.com`, not `app.example.com`.
+- `CORS_ORIGIN` must be `https://app.${DOMAIN}`.
+- `DATABASE_URL` password must exactly match `POSTGRES_PASSWORD`.
+- `ACME_EMAIL` must be a real email address for Let’s Encrypt registration.
+- Do not commit `.env.prod`.
 
-  docker compose --env-file .env.prod -f compose.prod.yml pull web
-  docker compose --env-file .env.prod -f compose.prod.yml up -d --remove-orphans
+Validate the Compose file can render:
 
-  For local image:
+```bash
+docker compose --env-file .env.prod -f compose.prod.yml config >/tmp/ai20k-compose.yml
+```
 
-  docker compose --env-file .env.prod -f compose.prod.yml up -d --remove-orphans
+## 5. Make sure the web image exists
 
-  Check status:
+Primary path: GitHub Actions builds and pushes:
 
-  docker compose --env-file .env.prod -f compose.prod.yml ps
+```text
+ghcr.io/hoangnb24/ai20k-demo/web:master
+```
 
-  Watch logs:
+If the GHCR package is private, login on the VPS:
 
-  docker compose --env-file .env.prod -f compose.prod.yml logs -f traefik web postgres
+```bash
+echo "YOUR_GITHUB_PAT_WITH_READ_PACKAGES" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
+```
 
-  7. Validate In Browser
-  Open:
+Test image pull:
 
-  https://app.yourdomain.com
-  https://grafana.yourdomain.com
+```bash
+docker compose --env-file .env.prod -f compose.prod.yml pull web
+```
 
-  Grafana login is from .env.prod:
+If the image has not been published yet, build locally on the VPS:
 
-  GRAFANA_ADMIN_USER
-  GRAFANA_ADMIN_PASSWORD
+```bash
+docker build -t ai20k-demo-web:local .
+```
 
-  Optional: if you want a browser UI for Docker admin tasks, add a DNS record for portainer.yourdomain.com and start Portainer:
+Then update `.env.prod`:
 
-  docker compose --env-file .env.prod -f compose.prod.yml --profile admin up -d portainer
+```bash
+WEB_IMAGE=ai20k-demo-web:local
+```
 
-  Then open https://portainer.yourdomain.com. Portainer will ask you to create its first admin user.
+Skip `pull web` when using a local image.
 
-  Also test from the VPS:
+## 6. Start the stack
 
-  curl -I https://app.yourdomain.com
-  docker compose --env-file .env.prod -f compose.prod.yml ps
+For GHCR image:
 
-  For Grafana observability:
+```bash
+docker compose --env-file .env.prod -f compose.prod.yml pull web traefik
+docker compose --env-file .env.prod -f compose.prod.yml up -d --build --remove-orphans
+```
 
-  - Go to https://grafana.yourdomain.com
-  - Check Connections / Data sources
-  - Prometheus and Loki should already exist
-  - In Explore, choose Loki and try:
+For local image:
 
-  {stack="ai20k-demo"}
+```bash
+docker compose --env-file .env.prod -f compose.prod.yml pull traefik
+docker compose --env-file .env.prod -f compose.prod.yml up -d --build --remove-orphans
+```
 
-  8. Wire GitHub Actions Deploy
-  In GitHub repo:
+Check status:
 
-  Settings -> Secrets and variables -> Actions -> New repository secret
+```bash
+docker compose --env-file .env.prod -f compose.prod.yml ps
+```
 
-  Add:
+Watch the important logs:
 
-  VPS_HOST=your.vps.public.ip
-  VPS_USER=your_ssh_user
-  VPS_SSH_KEY=private SSH key that can access the VPS
-  VPS_STACK_PATH=/opt/ai20k-demo
+```bash
+docker compose --env-file .env.prod -f compose.prod.yml logs -f traefik web postgres
+```
 
-  Optional:
+The `--build` flag builds the local `presentation` service.
 
-  VPS_PORT=22
-  GHCR_USERNAME=your_github_username
-  GHCR_TOKEN=PAT with read:packages
+## 7. SSL verification checklist
 
-  Then push to master. The workflow should:
+Run this checklist before debugging the app.
 
-  1. Build image.
-  2. Push to GHCR.
-  3. SSH into VPS.
-  4. Run docker compose pull web.
-  5. Run docker compose up -d --remove-orphans.
+### 7.1 Confirm DNS points to this VPS
 
-  Important Cloudflare Note
-  Keep the three DNS records as DNS only for now. After everything works, you can experiment with Cloudflare proxy, but then set Cloudflare SSL/TLS mode to Full
-  (strict). If cert issuance starts failing, switch back to DNS-only or change Traefik later to Cloudflare DNS challenge.
+Run from your local machine or the VPS:
 
-  References: Cloudflare DNS proxy status docs, Docker Ubuntu install docs, GitHub Container Registry auth docs, and Traefik HTTP-01 docs:
+```bash
+dig +short app.${DOMAIN}
+dig +short slides.${DOMAIN}
+dig +short grafana.${DOMAIN}
+```
 
-  - https://developers.cloudflare.com/dns/proxy-status/
-  - https://docs.docker.com/engine/install/ubuntu/
-  - https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
-  - https://doc.traefik.io/traefik/https/acme/
+Expected: both return `VPS_IP`.
+
+### 7.2 Confirm ports 80 and 443 are reachable
+
+Run from your local machine:
+
+```bash
+curl -I http://app.${DOMAIN}
+curl -Ik https://app.${DOMAIN}
+curl -I http://slides.${DOMAIN}
+curl -Ik https://slides.${DOMAIN}
+curl -I http://grafana.${DOMAIN}
+curl -Ik https://grafana.${DOMAIN}
+```
+
+Expected:
+
+- HTTP should respond with a redirect to HTTPS, or Traefik should answer.
+- HTTPS should not time out.
+
+If these commands time out, check AWS firewall/security group and `ufw`.
+
+### 7.3 Confirm Traefik is seeing Docker labels
+
+```bash
+docker compose --env-file .env.prod -f compose.prod.yml logs --tail=200 traefik
+```
+
+There must be no Docker API error like:
+
+```text
+client version 1.24 is too old
+```
+
+If that error appears, make sure the stack uses `traefik:v3.6.1` or newer:
+
+```bash
+grep 'image: traefik' compose.prod.yml
+docker compose --env-file .env.prod -f compose.prod.yml pull traefik
+docker compose --env-file .env.prod -f compose.prod.yml up -d traefik
+```
+
+### 7.4 Check ACME certificate storage
+
+Traefik stores Let’s Encrypt data in the `traefik_letsencrypt` Docker volume.
+
+Inspect it:
+
+```bash
+docker run --rm -v ai20k-demo_traefik_letsencrypt:/letsencrypt alpine ls -la /letsencrypt
+docker run --rm -v ai20k-demo_traefik_letsencrypt:/letsencrypt alpine cat /letsencrypt/acme.json
+```
+
+If `acme.json` is missing or empty, Traefik has not issued certificates yet.
+
+Check the Traefik logs for ACME errors:
+
+```bash
+docker compose --env-file .env.prod -f compose.prod.yml logs traefik | grep -Ei 'acme|certificate|challenge|letsencrypt|error'
+```
+
+### 7.5 Common SSL failure causes
+
+| Symptom | Likely cause | Fix |
+| --- | --- | --- |
+| Browser shows Traefik default/self-signed cert | Let’s Encrypt has not issued yet | Check Traefik ACME logs and DNS/ports |
+| `timeout during connect` in ACME logs | Port 80 blocked | Open AWS firewall/security group and `ufw` port 80 |
+| `unauthorized` in ACME logs | DNS points to wrong IP or proxy intercepts challenge | Fix A records; set Cloudflare to DNS-only |
+| `too many certificates` or rate limit | Repeated failed issuance attempts | Wait for Let’s Encrypt rate limit window or use staging temporarily |
+| HTTP works but HTTPS 404s | Traefik can run but did not discover service labels | Check Docker provider logs and `traefik:v3.6.1` |
+| One hostname works but another does not | Missing DNS record or router not discovered | Check `dig`, labels, and Traefik logs |
+
+### 7.6 Reset certificates after fixing DNS
+
+Only do this after DNS and firewall are correct.
+
+```bash
+docker compose --env-file .env.prod -f compose.prod.yml down
+docker volume rm ai20k-demo_traefik_letsencrypt
+docker compose --env-file .env.prod -f compose.prod.yml up -d --build --remove-orphans
+docker compose --env-file .env.prod -f compose.prod.yml logs -f traefik
+```
+
+This forces Traefik to request fresh certificates.
+
+## 8. Validate in browser
+
+Open:
+
+```text
+https://app.${DOMAIN}
+https://slides.${DOMAIN}
+https://grafana.${DOMAIN}
+```
+
+Validate:
+
+- `https://app.${DOMAIN}` loads without browser SSL warnings.
+- `https://slides.${DOMAIN}` loads without browser SSL warnings.
+- `https://grafana.${DOMAIN}` loads without browser SSL warnings.
+- Grafana login uses `GRAFANA_ADMIN_USER` and `GRAFANA_ADMIN_PASSWORD`.
+- Grafana data sources include Prometheus and Loki.
+- In Grafana Explore, choose Loki and try:
+
+```text
+{stack="ai20k-demo"}
+```
+
+Also test from the VPS:
+
+```bash
+curl -I https://app.${DOMAIN}
+docker compose --env-file .env.prod -f compose.prod.yml ps
+```
+
+Optional Portainer:
+
+```bash
+docker compose --env-file .env.prod -f compose.prod.yml --profile admin up -d portainer
+```
+
+Then open:
+
+```text
+https://portainer.${DOMAIN}
+```
+
+## 9. Wire GitHub Actions deploy
+
+In GitHub:
+
+```text
+Settings -> Secrets and variables -> Actions -> New repository secret
+```
+
+Add:
+
+```text
+VPS_HOST=your.vps.public.ip
+VPS_USER=your_ssh_user
+VPS_SSH_KEY=private SSH key that can access the VPS
+VPS_STACK_PATH=/opt/ai20k-demo
+```
+
+Optional:
+
+```text
+VPS_PORT=22
+GHCR_USERNAME=your_github_username
+GHCR_TOKEN=PAT with read:packages
+```
+
+Then push to `master`. The workflow should:
+
+1. Build the web image.
+2. Push it to GHCR.
+3. SSH into the VPS.
+4. Pull the latest repo checkout on the VPS so Compose and Traefik config changes are deployed.
+5. Run `docker compose pull web traefik`.
+6. Run `docker compose up -d --build --remove-orphans`.
+
+## 10. Cloudflare note
+
+Keep the DNS records as **DNS only** until SSL works.
+
+After everything works, you can experiment with Cloudflare proxy, but set Cloudflare SSL/TLS mode to **Full (strict)**.
+
+If certificate issuance starts failing after enabling the proxy:
+
+1. Switch the records back to DNS-only, or
+2. Change Traefik from HTTP-01 to Cloudflare DNS-01 challenge.
+
+## References
+
+- https://developers.cloudflare.com/dns/proxy-status/
+- https://docs.docker.com/engine/install/ubuntu/
+- https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
+- https://doc.traefik.io/traefik/https/acme/
+- https://doc.traefik.io/traefik/user-guides/docker-compose/acme-http/
+- https://letsencrypt.org/docs/challenge-types/
