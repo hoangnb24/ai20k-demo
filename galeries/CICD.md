@@ -6,7 +6,7 @@
   VPS_USER=your_ssh_user
   STACK_PATH=/opt/ai20k-demo
 
-  Use app.yourdomain.com, grafana.yourdomain.com, and portainer.yourdomain.com.
+  Use app.yourdomain.com and grafana.yourdomain.com. Portainer is optional for Docker admin UI access.
 
   1. Cloudflare DNS
   In Cloudflare dashboard:
@@ -27,19 +27,12 @@
   Proxy status: DNS only
   TTL: Auto
 
-  Type: A
-  Name: portainer
-  Content: VPS_IP
-  Proxy status: DNS only
-  TTL: Auto
-
   Important: use DNS only, gray cloud, for first deploy. Our Traefik stack uses Let’s Encrypt HTTP-01, so port 80 must reach the VPS directly.
 
   Verify from your machine:
 
   dig +short app.yourdomain.com
   dig +short grafana.yourdomain.com
-  dig +short portainer.yourdomain.com
 
   Each should return your VPS IP.
 
@@ -174,14 +167,17 @@
 
   https://app.yourdomain.com
   https://grafana.yourdomain.com
-  https://portainer.yourdomain.com
 
   Grafana login is from .env.prod:
 
   GRAFANA_ADMIN_USER
   GRAFANA_ADMIN_PASSWORD
 
-  Portainer will ask you to create its first admin user.
+  Optional: if you want a browser UI for Docker admin tasks, add a DNS record for portainer.yourdomain.com and start Portainer:
+
+  docker compose --env-file .env.prod -f compose.prod.yml --profile admin up -d portainer
+
+  Then open https://portainer.yourdomain.com. Portainer will ask you to create its first admin user.
 
   Also test from the VPS:
 
