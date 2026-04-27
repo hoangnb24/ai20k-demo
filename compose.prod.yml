@@ -2,7 +2,7 @@ name: ai20k-demo
 
 services:
   traefik:
-    image: traefik:v3.4
+    image: traefik:v3.6.1
     restart: unless-stopped
     command:
       - --configFile=/etc/traefik/traefik.yml
