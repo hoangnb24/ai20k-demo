@@ -166,6 +166,8 @@ services:
   portainer:
     image: portainer/portainer-ce:latest
     restart: unless-stopped
+    profiles:
+      - admin
     networks:
       - public
       - internal

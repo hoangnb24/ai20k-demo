@@ -141,9 +141,16 @@ The public routes are:
 
 - `https://app.<DOMAIN>` -> Next.js app
 - `https://grafana.<DOMAIN>` -> Grafana with Prometheus and Loki datasources provisioned
-- `https://portainer.<DOMAIN>` -> Portainer UI
 
 The stack also runs Postgres, Traefik, Prometheus, Loki, Alloy, node-exporter, and cAdvisor. The app exposes `/api/internal/health` and `/api/internal/metrics` for container health checks and internal Prometheus scraping; Traefik does not route `/api/internal/*` publicly.
+
+Portainer is available as an optional browser admin UI for Docker containers, images, volumes, and logs. It is not required for the app or observability stack. Start it only when needed:
+
+```bash
+docker compose --env-file .env.prod -f compose.prod.yml --profile admin up -d portainer
+```
+
+When enabled, it is exposed at `https://portainer.<DOMAIN>` and asks you to create the first admin user.
 
 To enable image update visibility without automatic restarts, run the optional DIUN profile:
 
